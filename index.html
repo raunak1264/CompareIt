@@ -298,21 +298,21 @@
             color: var(--text-color);
         }
 
-        .diff-marker {
-            display: inline-block;
-            width: 12px;
-            height: 100%;
-            position: absolute;
-            top: 0;
-        }
+     .diff-marker {
+    display: inline-block;
+    width: 12px;
+    height: 21px; /* Fixed height matching line height */
+    position: absolute;
+    z-index: 1; /* Ensure markers are above textarea */
+}
 
-        .left-diff-marker {
-            right: 0;
-        }
+.left-diff-marker {
+    right: 2px; /* Adjust position inside the editor */
+}
 
-        .right-diff-marker {
-            left: 0;
-        }
+.right-diff-marker {
+    left: 2px; /* Adjust position inside the editor */
+}
 
         .diff-added-marker {
             background-color: var(--diff-added-bg);
@@ -591,31 +591,32 @@
 
         // Add diff markers to the editors
         function updateDiffMarkers(diff) {
-            // Clear existing markers
-            clearDiffMarkers();
-            
-            // Left editor - removed lines
-            diff.left.forEach(line => {
-                if (line.type === 'removed') {
-                    const marker = document.createElement('div');
-                    marker.className = 'diff-marker left-diff-marker diff-removed-marker';
-                    marker.style.top = `${(line.lineNumber - 1) * 21}px`; // Approximate line height
-                    marker.title = 'Line removed';
-                    leftEditor.parentNode.appendChild(marker);
-                }
-            });
-            
-            // Right editor - added lines
-            diff.right.forEach(line => {
-                if (line.type === 'added') {
-                    const marker = document.createElement('div');
-                    marker.className = 'diff-marker right-diff-marker diff-added-marker';
-                    marker.style.top = `${(line.lineNumber - 1) * 21}px`; // Approximate line height
-                    marker.title = 'Line added';
-                    rightEditor.parentNode.appendChild(marker);
-                }
-            });
+    clearDiffMarkers();
+    
+    // Left editor - removed lines
+    diff.left.forEach(line => {
+        if (line.type === 'removed') {
+            const marker = document.createElement('div');
+            marker.className = 'diff-marker left-diff-marker diff-removed-marker';
+            marker.style.top = `${(line.lineNumber - 1) * 21}px`;
+            marker.style.height = '21px'; // Set fixed height
+            marker.title = 'Line removed';
+            leftEditor.parentNode.appendChild(marker);
         }
+    });
+    
+    // Right editor - added lines
+    diff.right.forEach(line => {
+        if (line.type === 'added') {
+            const marker = document.createElement('div');
+            marker.className = 'diff-marker right-diff-marker diff-added-marker';
+            marker.style.top = `${(line.lineNumber - 1) * 21}px`;
+            marker.style.height = '21px'; // Set fixed height
+            marker.title = 'Line added';
+            rightEditor.parentNode.appendChild(marker);
+        }
+    });
+}
         
         // Clear diff markers
         function clearDiffMarkers() {
