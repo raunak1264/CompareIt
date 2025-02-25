@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Comparison Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/vs2015.min.css">
+    <style>
+        :root {
+            --primary-color: #4a6ee0;
+            --secondary-color: #f0f4ff;
+            --tertiary-color: #e4e9f7;
+            --text-color: #333;
+            --border-color: #ddd;
+            --header-height: 60px;
+            --footer-height: 40px;
+            --panel-gap: 16px;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            color: var(--text-color);
+            background-color: #f9fafb;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0 20px;
+            height: var(--header-height);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow: hidden;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group label {
+            font-weight: 500;
+        }
+        select, button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: white;
+            font-size: 14px;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #3a5dcc;
+        }
+        button.secondary {
+            background-color: #f5f5f5;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        button.secondary:hover {
+            background-color: #e5e5e5;
+        }
+        .editor-container {
+            flex: 1;
+            display: flex;
+            gap: var(--panel-gap);
+            overflow: hidden;
+        }
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .panel-header {
+            background-color: var(--secondary-color);
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .panel-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .panel-actions button {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .editor {
+            flex: 1;
+            padding: 12px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            border: none;
+            background-color: white;
+            outline: none;
+            white-space: pre;
+            overflow: auto;
+        }
+        .diff-view {
+            flex: 1;
+            padding: 12px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            background-color: white;
+            overflow: auto;
+            display: none;
+        }
+        .diff-added {
+            background-color: #e6ffed;
+            border-left: 2px solid #28a745;
+            margin-left: -2px;
+            padding-left: 2px;
+        }
+        .diff-removed {
+            background-color: #ffeef0;
+            border-left: 2px solid #d73a49;
+            margin-left: -2px;
+            padding-left: 2px;
+            text-decoration: line-through;
+            color: #666;
+        }
+        .line-numbers {
+            color: #999;
+            text-align: right;
+            padding-right: 10px;
+            padding-left: 5px;
+            user-select: none;
+        }
+        .line-content {
+            white-space: pre;
+            padding-left: 10px;
+        }
+        table.diff-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        table.diff-table tr {
+            height: 24px;
+        }
+        footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            height: var(--footer-height);
+            background-color: var(--secondary-color);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .status-info {
+            display: flex;
+            gap: 12px;
+        }
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background-color: var(--tertiary-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .upload-area:hover {
+            background-color: #dbe4ff;
+        }
+        .upload-area p {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        #file-input {
+            display: none;
+        }
+        .spacer {
+            flex: 1;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .modal-header h2 {
+            font-size: 1.2rem;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .example-item {
+            padding: 10px;
+            background-color: var(--tertiary-color);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .example-item:hover {
+            background-color: #dbe4ff;
+        }
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .editor-container {
+                flex-direction: column;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .spacer {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Code Comparison Tool</h1>
+        <div class="control-group">
+            <button id="examples-btn">Load Example</button>
+            <button id="help-btn">Help</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="controls">
+            <div class="control-group">
+                <label for="language-select">Language:</label>
+                <select id="language-select">
+                    <option value="plaintext">Plain Text</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="csharp">C#</option>
+                    <option value="cpp">C++</option>
+                    <option value="php">PHP</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="json">JSON</option>
+                    <option value="xml">XML</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="sql">SQL</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="view-mode">View Mode:</label>
+                <select id="view-mode">
+                    <option value="side-by-side">Side by Side</option>
+                    <option value="unified">Unified Diff</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <button id="compare-btn">Compare Differences</button>
+                <button id="toggle-line-numbers">Show Line Numbers</button>
+                <button id="reset-btn" class="secondary">Reset</button>
+            </div>
+            <div class="spacer"></div>
+            <div class="control-group">
+                <button id="download-btn">Download Comparison</button>
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <div class="editor-panel" id="left-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Original</div>
+                    <div class="panel-actions">
+                        <button id="left-load-file">Load File</button>
+                        <button id="left-clear">Clear</button>
+                    </div>
+                </div>
+                <textarea id="left-editor" class="editor" placeholder="Paste or type your original code here..."></textarea>
+                <div id="left-diff-view" class="diff-view"></div>
+            </div>
+            <div class="editor-panel" id="right-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Modified</div>
+                    <div class="panel-actions">
+                        <button id="right-load-file">Load File</button>
+                        <button id="right-clear">Clear</button>
+                    </div>
+                </div>
+                <textarea id="right-editor" class="editor" placeholder="Paste or type your modified code here..."></textarea>
+                <div id="right-diff-view" class="diff-view"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="status-info">
+            <span id="char-count">Characters: 0 / 0</span>
+            <span id="line-count">Lines: 0 / 0</span>
+            <span id="diff-count">Differences: 0</span>
+        </div>
+        <div>
+            <span>Code Comparison Tool v1.0</span>
+        </div>
+    </footer>
+
+    <input type="file" id="file-input" accept=".txt,.js,.py,.java,.cs,.cpp,.php,.html,.css,.json,.xml,.md,.sql">
+
+    <div id="examples-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Load Example</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Select an example to load into the comparison tool:</p>
+                <div class="examples">
+                    <div class="example-item" data-example="javascript">JavaScript Function Changes</div>
+                    <div class="example-item" data-example="python">Python Class Implementation</div>
+                    <div class="example-item" data-example="html">HTML Structure Comparison</div>
+                    <div class="example-item" data-example="json">JSON Configuration</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Help & Instructions</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>Getting Started</h3>
+                <p>This tool allows you to compare two pieces of code or text side by side and highlight the differences between them.</p>
+                
+                <h3>Basic Usage</h3>
+                <ol>
+                    <li>Paste or type code/text into both panels</li>
+                    <li>Select the appropriate language from the dropdown</li>
+                    <li>Click "Compare Differences" to see the changes highlighted</li>
+                </ol>
+                
+                <h3>Features</h3>
+                <ul>
+                    <li><strong>Language Selection:</strong> Choose the language for syntax highlighting</li>
+                    <li><strong>View Modes:</strong> "Side by Side" or "Unified Diff" view</li>
+                    <li><strong>Line Numbers:</strong> Toggle line numbers on/off</li>
+                    <li><strong>File Loading:</strong> Load files directly from your computer</li>
+                    <li><strong>Download:</strong> Save the comparison results</li>
+                </ul>
+                
+                <h3>Keyboard Shortcuts</h3>
+                <ul>
+                    <li><strong>Ctrl+Enter:</strong> Compare differences</li>
+                    <li><strong>Ctrl+L:</strong> Toggle line numbers</li>
+                    <li><strong>Ctrl+R:</strong> Reset both editors</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize editors
+            const leftEditor = document.getElementById('left-editor');
+            const rightEditor = document.getElementById('right-editor');
+            const leftDiffView = document.getElementById('left-diff-view');
+            const rightDiffView = document.getElementById('right-diff-view');
+            const compareBtn = document.getElementById('compare-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const toggleLineNumbersBtn = document.getElementById('toggle-line-numbers');
+            const viewModeSelect = document.getElementById('view-mode');
+            const languageSelect = document.getElementById('language-select');
+            const fileInput = document.getElementById('file-input');
+            const leftLoadFileBtn = document.getElementById('left-load-file');
+            const rightLoadFileBtn = document.getElementById('right-load-file');
+            const leftClearBtn = document.getElementById('left-clear');
+            const rightClearBtn = document.getElementById('right-clear');
+            const charCountDisplay = document.getElementById('char-count');
+            const lineCountDisplay = document.getElementById('line-count');
+            const diffCountDisplay = document.getElementById('diff-count');
+            
+            // Modal elements
+            const examplesBtn = document.getElementById('examples-btn');
+            const helpBtn = document.getElementById('help-btn');
+            const examplesModal = document.getElementById('examples-modal');
+            const helpModal = document.getElementById('help-modal');
+            const modalCloseButtons = document.querySelectorAll('.modal-close, .modal-close-btn');
+            const exampleItems = document.querySelectorAll('.example-item');
+
+            let lineNumbersVisible = false;
+            let currentTarget = null;
+            
+            // Update counters
+            function updateCounters() {
+                const leftText = leftEditor.value;
+                const rightText = rightEditor.value;
+                
+                const leftCharCount = leftText.length;
+                const rightCharCount = rightText.length;
+                const leftLineCount = leftText ? leftText.split('\n').length : 0;
+                const rightLineCount = rightText ? rightText.split('\n').length : 0;
+                
+                charCountDisplay.textContent = `Characters: ${leftCharCount} / ${rightCharCount}`;
+                lineCountDisplay.textContent = `Lines: ${leftLineCount} / ${rightLineCount}`;
+            }
+            
+            // Perform diff and render results
+            function performDiff() {
+                const dmp = new diff_match_patch();
+                const leftText = leftEditor.value;
+                const rightText = rightEditor.value;
+                const viewMode = viewModeSelect.value;
+                const language = languageSelect.value;
+                
+                // Calculate diffs
+                const diffs = dmp.diff_main(leftText, rightText);
+                dmp.diff_cleanupSemantic(diffs);
+                
+                let diffCount = 0;
+                diffs.forEach(diff => {
+                    if (diff[0] !== 0) diffCount++;
+                });
+                diffCountDisplay.textContent = `Differences: ${diffCount}`;
+                
+                if (viewMode === 'side-by-side') {
+                    // Side by side view
+                    leftEditor.style.display = 'none';
+                    rightEditor.style.display = 'none';
+                    leftDiffView.style.display = 'block';
+                    rightDiffView.style.display = 'block';
+                    
+                    const leftLines = [];
+                    const rightLines = [];
+                    
+                    let leftLineContent = '';
+                    let rightLineContent = '';
+                    
+                    diffs.forEach(diff => {
+                        const [diffType, text] = diff;
+                        const lines = text.split('\n');
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i];
+                            const isLastLine = i === lines.length - 1;
+                            
+                            if (diffType === 0) { // Equal
+                                leftLineContent += line;
+                                rightLineContent += line;
+                            } else if (diffType === -1) { // Deletion
+                                leftLineContent += `<span class="diff-removed">${line}</span>`;
+                            } else if (diffType === 1) { // Addition
+                                rightLineContent += `<span class="diff-added">${line}</span>`;
+                            }
+                            
+                            if (!isLastLine || (isLastLine && i === lines.length - 1 && text.endsWith('\n'))) {
+                                leftLines.push(leftLineContent);
+                                rightLines.push(rightLineContent);
+                                leftLineContent = '';
+                                rightLineContent = '';
+                            }
+                        }
+                    });
+                    
+                    // Generate HTML with line numbers if enabled
+                    let leftHtml = '<table class="diff-table">';
+                    let rightHtml = '<table class="diff-table">';
+                    
+                    leftLines.forEach((line, index) => {
+                        leftHtml += '<tr>';
+                        if (lineNumbersVisible) {
+                            leftHtml += `<td class="line-numbers">${index + 1}</td>`;
+                        }
+                        leftHtml += `<td class="line-content">${line}</td></tr>`;
+                    });
+                    
+                    rightLines.forEach((line, index) => {
+                        rightHtml += '<tr>';
+                        if (lineNumbersVisible) {
+                            rightHtml += `<td class="line-numbers">${index + 1}</td>`;
+                        }
+                        rightHtml += `<td class="line-content">${line}</td></tr>`;
+                    });
+                    
+                    leftHtml += '</table>';
+                    rightHtml += '</table>';
+                    
+                    leftDiffView.innerHTML = leftHtml;
+                    rightDiffView.innerHTML = rightHtml;
+                } else {
+                    // Unified diff view
+                    leftEditor.style.display = 'none';
+                    rightEditor.style.display = 'none';
+                    leftDiffView.style.display = 'block';
+                    rightDiffView.style.display = 'none';
+                    
+                    let html = '<table class="diff-table">';
+                    let lineNumber = 1;
+                    
+                    diffs.forEach(diff => {
+                        const [diffType, text] = diff;
+                        const lines = text.split('\n');
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i];
+                            const isLastLine = i === lines.length - 1 && !text.endsWith('\n');
+                            
+                            if (!isLastLine || line) {
+                                html += '<tr>';
+                                if (lineNumbersVisible) {
+                                    html += `<td class="line-numbers">${lineNumber++}</td>`;
+                                }
+                                
+                                if (diffType === 0) { // Equal
+                                    html += `<td class="line-content">${line}</td>`;
+                                } else if (diffType === -1) { // Deletion
+                                    html += `<td class="line-content"><span class="diff-removed">${line}</span></td>`;
+                                } else if (diffType === 1) { // Addition
+                                    html += `<td class="line-content"><span class="diff-added">${line}</span></td>`;
+                                }
+                                
+                                html += '</tr>';
+                            }
+                        }
+                    });
+                    
+                    html += '</table>';
+                    leftDiffView.innerHTML = html;
+                }
+                
+                // Apply syntax highlighting if not plaintext
+                if (language !== 'plaintext') {
+                    document.querySelectorAll('.line-content').forEach(el => {
+                        el.classList.add(`language-${language}`);
+                        hljs.highlightElement(el);
+                    });
+                }
+            }
+            
+            // Reset editors and views
+            function resetEditors() {
+                leftEditor.value = '';
+                rightEditor.value = '';
+                leftDiffView.innerHTML = '';
+                rightDiffView.innerHTML = '';
+                leftEditor.style.display = 'block';
+                rightEditor.style.display = 'block';
+                leftDiffView.style.display = 'none';
+                rightDiffView.style.display = 'none';
+                updateCounters();
+                diffCountDisplay.textContent = 'Differences: 0';
+            }
+            
+            // Toggle line numbers
+            function toggleLineNumbers() {
+                lineNumbersVisible = !lineNumbersVisible;
+                toggleLineNumbersBtn.textContent = lineNumbersVisible ? 'Hide Line Numbers' : 'Show Line Numbers';
+                if (leftDiffView.innerHTML) {
+                    performDiff();
+                }
+            }
+            
+            // Load file
+            function loadFile(target) {
+                currentTarget = target;
+                fileInput.click();
+            }
+            
+            // Download comparison
+            function downloadComparison() {
+                const leftText = leftEditor.value;
+                const rightText = rightEditor.value;
+                const language = languageSelect.value;
+                
+                // Create HTML document with comparison
+                const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Code Comparison</title>
+                    <style>
+                        body { font-family: sans-serif; margin: 20px; }
+                        h1 { margin-bottom: 20px; }
+                        .comparison-container { display: flex; gap: 20px; }
+                        .panel { flex: 1; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
+                        .panel-header { background-color: #f5f5f5; padding: 10px; border-bottom: 1px solid #ddd; }
+                        pre { margin: 0; padding: 10px; white-space: pre-wrap; overflow: auto; max-height: 600px; }
+                        .diff-added { background-color: #e6ffed; }
+                        .diff-removed { background-color: #ffeef0; text-decoration: line-through; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Code Comparison</h1>
+                    <p>Language: ${language}</p>
+                    <div class="comparison-container">
+                        <div class="panel">
+                            <div class="panel-header">Original</div>
+                            <pre>${leftText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-header">Modified</div>
+                            <pre>${rightText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                        </div>
+                    </div>
+                    <div class="timestamp">Generated on ${new Date().toLocaleString()}</div>
+                </body>
+                </html>
+                `;
+                
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'code-comparison.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            // Event listeners
+            compareBtn.addEventListener('click', performDiff);
+            resetBtn.addEventListener('click', resetEditors);
+            toggleLineNumbersBtn.addEventListener('click', toggleLineNumbers);
+            downloadBtn.addEventListener('click', downloadComparison);
+            leftLoadFileBtn.addEventListener('click', () => loadFile('left'));
+            rightLoadFileBtn.addEventListener('click', () => loadFile('right'));
+            leftClearBtn.addEventListener('click', () => {
+                leftEditor.value = '';
+                updateCounters();
+            });
+            rightClearBtn.addEventListener('click', () => {
+                rightEditor.value = '';
+                updateCounters();
+            });
+            
+            leftEditor.addEventListener('input', updateCounters);
+            rightEditor.addEventListener('input', updateCounters);
+            
+            viewModeSelect.addEventListener('change', () => {
+                if (leftDiffView.innerHTML) {
+                    performDiff();
+                }
+            });
+            
+            languageSelect.addEventListener('change', () => {
+                if (leftDiffView.innerHTML) {
+                    performDiff();
+                }
+            });
+            
+            fileInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        if (currentTarget === 'left') {
+                            leftEditor.value = e.target.result;
+                        } else {
+                            rightEditor.value = e.target.result;
+                        }
+                        updateCounters();
+                        
+                        // Try to detect language from file extension
+                        const extension = file.name.split('.').pop().toLowerCase();
+                        const extensionMap = {
+                            'js': 'javascript',
+                            'py': 'python',
+                            'java': 'java',
+                            'cs': 'csharp',
+                            'cpp': 'cpp',
+                            'c': 'cpp',
+                            'h': 'cpp',
+                            'php': 'php',
+                            'html': 'html',
+                            'css': 'css',
+                            'json': 'json',
+                            'xml': 'xml',
+                            'md': 'markdown',
+                            'sql': 'sql'
+                        };
+                        
+                        if (extension in extensionMap) {
+                            languageSelect.value = extensionMap[extension];
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                }
+                
+                // Reset the input
+                this.value = '';
+            });
+            
+            // Modal handling
+            examplesBtn.addEventListener('click', () => {
+                examplesModal.style.display = 'flex';
+            });
+            
+            helpBtn.addEventListener('click', () => {
+                helpModal.style.display = 'flex';
+            });
+            
+            modalCloseButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    examplesModal.style.display = 'none';
+                    helpModal.style.display = 'none';
+                });
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === examplesModal) {
+                    examplesModal.style.display = 'none';
+                }
+                if (e.target === helpModal) {
+                    helpModal.style.display = 'none';
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+Enter: Compare differences
+                
