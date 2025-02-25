@@ -1,10 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Code Comparison Tool</title>
+    <title>Code Comparison Tool</title>
     <style>
+        /* Theme Variables */
+        html[data-theme="light"] {
+            --bg-color: #f9fafb;
+            --text-color: #333;
+            --header-bg: #3498db;
+            --header-text: white;
+            --panel-bg: white;
+            --panel-header-bg: #f5f5f5;
+            --border-color: #ddd;
+            --button-primary: #3498db;
+            --button-primary-hover: #2980b9;
+            --button-secondary: #f5f5f5;
+            --button-secondary-text: #333;
+            --button-secondary-hover: #e5e5e5;
+            --example-btn-bg: #f5f5f5;
+            --example-btn-text: #333;
+            --example-btn-hover: #e5e5e5;
+            --diff-added-bg: #e6ffed;
+            --diff-added-text: #22863a;
+            --diff-removed-bg: #ffeef0;
+            --diff-removed-text: #cb2431;
+            --status-text: #666;
+            --line-numbers-bg: #f5f5f5;
+            --line-numbers-text: #999;
+            --line-numbers-border: #ddd;
+        }
+
+        html[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --header-bg: #2c3e50;
+            --header-text: #f0f0f0;
+            --panel-bg: #2a2a2a;
+            --panel-header-bg: #333;
+            --border-color: #444;
+            --button-primary: #2980b9;
+            --button-primary-hover: #3498db;
+            --button-secondary: #444;
+            --button-secondary-text: #f0f0f0;
+            --button-secondary-hover: #555;
+            --example-btn-bg: #444;
+            --example-btn-text: #f0f0f0;
+            --example-btn-hover: #555;
+            --diff-added-bg: #0b3b1c;
+            --diff-added-text: #7ce3a1;
+            --diff-removed-bg: #4b1a1d;
+            --diff-removed-text: #ff8080;
+            --status-text: #aaa;
+            --line-numbers-bg: #222;
+            --line-numbers-text: #888;
+            --line-numbers-border: #444;
+        }
+
         /* Basic Reset */
         * {
             margin: 0;
@@ -15,19 +68,83 @@
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: var(--text-color);
+            background-color: var(--bg-color);
             padding: 20px;
             max-width: 1400px;
             margin: 0 auto;
             height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
         h1 {
             text-align: center;
-            margin-bottom: 20px;
-            color: #2c3e50;
+            color: var(--text-color);
+        }
+
+        .theme-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-switch-label {
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
 
         .controls {
@@ -40,24 +157,27 @@
 
         button {
             padding: 8px 12px;
-            background-color: #3498db;
-            color: white;
+            background-color: var(--button-primary);
+            color: var(--header-text);
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            transition: background-color 0.2s;
         }
 
         button:hover {
-            background-color: #2980b9;
+            background-color: var(--button-primary-hover);
         }
 
-        .secondary {
-            background-color: #95a5a6;
+        button.secondary {
+            background-color: var(--button-secondary);
+            color: var(--button-secondary-text);
+            border: 1px solid var(--border-color);
         }
 
-        .secondary:hover {
-            background-color: #7f8c8d;
+        button.secondary:hover {
+            background-color: var(--button-secondary-hover);
         }
 
         .editor-container {
@@ -76,17 +196,18 @@
 
         .editor-panel {
             flex: 1;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            background-color: var(--panel-bg);
         }
 
         .panel-header {
             padding: 10px;
-            background-color: #f5f5f5;
-            border-bottom: 1px solid #ddd;
+            background-color: var(--panel-header-bg);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -96,47 +217,54 @@
             font-weight: bold;
         }
 
+        .editor-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .line-numbers {
+            width: 50px;
+            flex-shrink: 0;
+            padding: 10px 0;
+            background-color: var(--line-numbers-bg);
+            color: var(--line-numbers-text);
+            border-right: 1px solid var(--line-numbers-border);
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: right;
+            user-select: none;
+            overflow-y: hidden;
+        }
+
+        .line-numbers div {
+            padding: 0 5px;
+        }
+
         textarea {
             width: 100%;
-            flex: 1;
+            height: 100%;
             padding: 10px;
             border: none;
             resize: none;
             font-family: monospace;
             font-size: 14px;
-            min-height: 0; /* Allow it to shrink in flex context */
+            line-height: 1.5;
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         textarea:focus {
             outline: none;
         }
 
-        .diff-view {
-            display: none;
-            width: 100%;
-            flex: 1;
-            padding: 10px;
-            overflow: auto;
-            font-family: monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
-        }
-
-        .diff-added {
-            background-color: #e6ffed;
-            color: #22863a;
-        }
-
-        .diff-removed {
-            background-color: #ffeef0;
-            color: #cb2431;
-            text-decoration: line-through;
-        }
-
         .status {
             text-align: center;
             font-size: 14px;
-            color: #666;
+            color: var(--status-text);
             margin-top: 10px;
             padding-bottom: 10px;
         }
@@ -147,31 +275,108 @@
             gap: 10px;
             margin-bottom: 20px;
             justify-content: center;
+            align-items: center;
         }
 
         .example-btn {
             padding: 5px 10px;
-            background-color: #f5f5f5;
-            border: 1px solid #ddd;
+            background-color: var(--example-btn-bg);
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
+            color: var(--example-btn-text);
+            transition: background-color 0.2s;
         }
 
         .example-btn:hover {
-            background-color: #eee;
+            background-color: var(--example-btn-hover);
+        }
+
+        .examples-label {
+            margin-right: 5px;
+            color: var(--text-color);
+        }
+
+        .diff-marker {
+            display: inline-block;
+            width: 12px;
+            height: 100%;
+            position: absolute;
+            top: 0;
+        }
+
+        .left-diff-marker {
+            right: 0;
+        }
+
+        .right-diff-marker {
+            left: 0;
+        }
+
+        .diff-added-marker {
+            background-color: var(--diff-added-bg);
+        }
+
+        .diff-removed-marker {
+            background-color: var(--diff-removed-bg);
+        }
+
+        /* Options section */
+        .options-container {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .option-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .checkbox-label {
+            cursor: pointer;
+            user-select: none;
+            color: var(--text-color);
         }
     </style>
 </head>
 <body>
-    <h1>Simple Code Comparison Tool</h1>
+    <header>
+        <h1>Code Comparison Tool</h1>
+        <div class="theme-switch">
+            <span class="theme-switch-label">Light Mode</span>
+            <label class="toggle">
+                <input type="checkbox" id="theme-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </header>
 
     <div class="examples-container">
-        <span>Examples:</span>
+        <span class="examples-label">Examples:</span>
         <button class="example-btn" data-example="javascript">JavaScript</button>
         <button class="example-btn" data-example="python">Python</button>
         <button class="example-btn" data-example="html">HTML</button>
         <button class="example-btn" data-example="json">JSON</button>
+    </div>
+
+    <div class="options-container">
+        <div class="option-group">
+            <input type="checkbox" id="live-compare" checked>
+            <label for="live-compare" class="checkbox-label">Live Comparison</label>
+        </div>
+        <div class="option-group">
+            <input type="checkbox" id="show-markers" checked>
+            <label for="show-markers" class="checkbox-label">Show Diff Markers</label>
+        </div>
+        <div class="option-group">
+            <input type="checkbox" id="sync-scroll" checked>
+            <label for="sync-scroll" class="checkbox-label">Sync Scrolling</label>
+        </div>
     </div>
 
     <div class="controls">
@@ -186,8 +391,10 @@
                 <div class="panel-title">Original Code</div>
                 <button id="clear-left" class="secondary">Clear</button>
             </div>
-            <textarea id="left-editor" placeholder="Paste or type your original code here..."></textarea>
-            <div id="left-diff" class="diff-view"></div>
+            <div class="editor-wrapper">
+                <div class="line-numbers" id="left-line-numbers"></div>
+                <textarea id="left-editor" placeholder="Paste or type your original code here..."></textarea>
+            </div>
         </div>
 
         <div class="editor-panel">
@@ -195,8 +402,10 @@
                 <div class="panel-title">Modified Code</div>
                 <button id="clear-right" class="secondary">Clear</button>
             </div>
-            <textarea id="right-editor" placeholder="Paste or type your modified code here..."></textarea>
-            <div id="right-diff" class="diff-view"></div>
+            <div class="editor-wrapper">
+                <div class="line-numbers" id="right-line-numbers"></div>
+                <textarea id="right-editor" placeholder="Paste or type your modified code here..."></textarea>
+            </div>
         </div>
     </div>
 
@@ -226,8 +435,8 @@
         // DOM elements
         const leftEditor = document.getElementById('left-editor');
         const rightEditor = document.getElementById('right-editor');
-        const leftDiff = document.getElementById('left-diff');
-        const rightDiff = document.getElementById('right-diff');
+        const leftLineNumbers = document.getElementById('left-line-numbers');
+        const rightLineNumbers = document.getElementById('right-line-numbers');
         const compareBtn = document.getElementById('compare-btn');
         const resetBtn = document.getElementById('reset-btn');
         const downloadBtn = document.getElementById('download-btn');
@@ -235,6 +444,20 @@
         const clearRightBtn = document.getElementById('clear-right');
         const statusDisplay = document.getElementById('status');
         const exampleBtns = document.querySelectorAll('.example-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+        const liveCompareCheckbox = document.getElementById('live-compare');
+        const showMarkersCheckbox = document.getElementById('show-markers');
+        const syncScrollCheckbox = document.getElementById('sync-scroll');
+
+        // Theme toggle - without localStorage
+        themeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                htmlElement.setAttribute('data-theme', 'dark');
+            } else {
+                htmlElement.setAttribute('data-theme', 'light');
+            }
+        });
 
         // Helper function to escape HTML
         function escapeHtml(unsafe) {
@@ -244,6 +467,34 @@
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        }
+
+        // Update line numbers
+        function updateLineNumbers(editor, lineNumbersElement) {
+            const linesCount = editor.value.split('\n').length;
+            let lineNumbersHtml = '';
+            
+            for (let i = 1; i <= linesCount; i++) {
+                lineNumbersHtml += `<div>${i}</div>`;
+            }
+            
+            lineNumbersElement.innerHTML = lineNumbersHtml;
+        }
+
+        // Sync line numbers with textarea scroll
+        function syncLineNumbers(editor, lineNumbers) {
+            lineNumbers.scrollTop = editor.scrollTop;
+        }
+
+        // Setup scroll sync between editor and line numbers
+        function setupEditorLineNumbersSync(editor, lineNumbers) {
+            editor.addEventListener('scroll', function() {
+                syncLineNumbers(editor, lineNumbers);
+            });
+            
+            editor.addEventListener('input', function() {
+                updateLineNumbers(editor, lineNumbers);
+            });
         }
 
         // Update statistics display
@@ -256,7 +507,23 @@
             const leftLineCount = leftText ? leftText.split('\n').length : 0;
             const rightLineCount = rightText ? rightText.split('\n').length : 0;
             
-            statusDisplay.textContent = `Characters: ${leftCharCount} / ${rightCharCount} | Lines: ${leftLineCount} / ${rightLineCount} | Differences: 0`;
+            // Get diff count
+            if (leftText && rightText) {
+                const diff = simpleDiff(leftText, rightText);
+                statusDisplay.textContent = `Characters: ${leftCharCount} / ${rightCharCount} | Lines: ${leftLineCount} / ${rightLineCount} | Differences: ${diff.diffCount}`;
+                
+                // Update diff markers if enabled
+                if (showMarkersCheckbox.checked) {
+                    updateDiffMarkers(diff);
+                }
+            } else {
+                statusDisplay.textContent = `Characters: ${leftCharCount} / ${rightCharCount} | Lines: ${leftLineCount} / ${rightLineCount} | Differences: 0`;
+                clearDiffMarkers();
+            }
+            
+            // Update line numbers
+            updateLineNumbers(leftEditor, leftLineNumbers);
+            updateLineNumbers(rightEditor, rightLineNumbers);
         }
 
         // Simple line-by-line diff implementation
@@ -287,18 +554,18 @@
             
             // Add common prefix lines
             for (let i = 0; i < commonPrefix; i++) {
-                leftResult.push({ text: oldLines[i], type: 'common' });
-                rightResult.push({ text: newLines[i], type: 'common' });
+                leftResult.push({ text: oldLines[i], type: 'common', lineNumber: i + 1 });
+                rightResult.push({ text: newLines[i], type: 'common', lineNumber: i + 1 });
             }
             
             // Add different parts
             for (let i = commonPrefix; i < oldLines.length - commonSuffix; i++) {
-                leftResult.push({ text: oldLines[i], type: 'removed' });
+                leftResult.push({ text: oldLines[i], type: 'removed', lineNumber: i + 1 });
                 diffCount++;
             }
             
             for (let i = commonPrefix; i < newLines.length - commonSuffix; i++) {
-                rightResult.push({ text: newLines[i], type: 'added' });
+                rightResult.push({ text: newLines[i], type: 'added', lineNumber: i + 1 });
                 diffCount++;
             }
             
@@ -307,83 +574,72 @@
                 const oldIndex = oldLines.length - commonSuffix + i;
                 const newIndex = newLines.length - commonSuffix + i;
                 
-                leftResult.push({ text: oldLines[oldIndex], type: 'common' });
-                rightResult.push({ text: newLines[newIndex], type: 'common' });
+                leftResult.push({ 
+                    text: oldLines[oldIndex], 
+                    type: 'common',
+                    lineNumber: oldIndex + 1
+                });
+                rightResult.push({ 
+                    text: newLines[newIndex], 
+                    type: 'common',
+                    lineNumber: newIndex + 1
+                });
             }
             
             return { left: leftResult, right: rightResult, diffCount };
         }
 
+        // Add diff markers to the editors
+        function updateDiffMarkers(diff) {
+            // Clear existing markers
+            clearDiffMarkers();
+            
+            // Left editor - removed lines
+            diff.left.forEach(line => {
+                if (line.type === 'removed') {
+                    const marker = document.createElement('div');
+                    marker.className = 'diff-marker left-diff-marker diff-removed-marker';
+                    marker.style.top = `${(line.lineNumber - 1) * 21}px`; // Approximate line height
+                    marker.title = 'Line removed';
+                    leftEditor.parentNode.appendChild(marker);
+                }
+            });
+            
+            // Right editor - added lines
+            diff.right.forEach(line => {
+                if (line.type === 'added') {
+                    const marker = document.createElement('div');
+                    marker.className = 'diff-marker right-diff-marker diff-added-marker';
+                    marker.style.top = `${(line.lineNumber - 1) * 21}px`; // Approximate line height
+                    marker.title = 'Line added';
+                    rightEditor.parentNode.appendChild(marker);
+                }
+            });
+        }
+        
+        // Clear diff markers
+        function clearDiffMarkers() {
+            document.querySelectorAll('.diff-marker').forEach(marker => {
+                marker.remove();
+            });
+        }
+
         // Compare the code and display differences
         function compareCode() {
-            const leftText = leftEditor.value;
-            const rightText = rightEditor.value;
-            
-            // Perform diff
-            const diff = simpleDiff(leftText, rightText);
-            
-            // Update status with diff count
-            statusDisplay.textContent = statusDisplay.textContent.replace(
-                /Differences: \d+/, 
-                `Differences: ${diff.diffCount}`
-            );
-            
-            // Generate HTML
-            let leftHtml = '';
-            let rightHtml = '';
-            
-            diff.left.forEach(line => {
-                if (line.type === 'common') {
-                    leftHtml += `<div>${escapeHtml(line.text)}</div>`;
-                } else if (line.type === 'removed') {
-                    leftHtml += `<div class="diff-removed">${escapeHtml(line.text)}</div>`;
-                }
-            });
-            
-            diff.right.forEach(line => {
-                if (line.type === 'common') {
-                    rightHtml += `<div>${escapeHtml(line.text)}</div>`;
-                } else if (line.type === 'added') {
-                    rightHtml += `<div class="diff-added">${escapeHtml(line.text)}</div>`;
-                }
-            });
-            
-            // Show diff views, hide editors
-            leftEditor.style.display = 'none';
-            rightEditor.style.display = 'none';
-            leftDiff.style.display = 'block';
-            rightDiff.style.display = 'block';
-            
-            // Set HTML content
-            leftDiff.innerHTML = leftHtml;
-            rightDiff.innerHTML = rightHtml;
-            
-            // Setup synchronized scrolling for diff views
-            setupSyncScroll(leftDiff, rightDiff);
+            updateStats();
         }
 
         // Reset editors and views
         function resetEditors() {
             leftEditor.value = '';
             rightEditor.value = '';
-            resetViews();
+            clearDiffMarkers();
             updateStats();
-        }
-
-        // Reset views
-        function resetViews() {
-            leftDiff.innerHTML = '';
-            rightDiff.innerHTML = '';
-            leftEditor.style.display = 'block';
-            rightEditor.style.display = 'block';
-            leftDiff.style.display = 'none';
-            rightDiff.style.display = 'none';
         }
 
         // Load an example
         function loadExample(type) {
             if (examples[type]) {
-                resetViews();
                 leftEditor.value = examples[type].left;
                 rightEditor.value = examples[type].right;
                 updateStats();
@@ -394,19 +650,73 @@
         function downloadComparison() {
             const leftText = leftEditor.value;
             const rightText = rightEditor.value;
+            const currentTheme = htmlElement.getAttribute('data-theme');
             
+            // Create HTML with current theme
             const html = `
 <!DOCTYPE html>
-<html>
+<html data-theme="${currentTheme}">
 <head>
     <title>Code Comparison</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        /* Theme Variables */
+        html[data-theme="light"] {
+            --bg-color: #f9fafb;
+            --text-color: #333;
+            --panel-bg: white;
+            --panel-header-bg: #f5f5f5;
+            --border-color: #ddd;
+            --line-numbers-text: #999;
+        }
+
+        html[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --panel-bg: #2a2a2a;
+            --panel-header-bg: #333;
+            --border-color: #444;
+            --line-numbers-text: #888;
+        }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
         h1 { margin-bottom: 20px; }
-        .comparison-container { display: flex; gap: 20px; }
-        .panel { flex: 1; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
-        .panel-header { background-color: #f5f5f5; padding: 10px; border-bottom: 1px solid #ddd; }
-        pre { margin: 0; padding: 10px; white-space: pre-wrap; overflow: auto; max-height: 600px; }
+        .comparison-container { 
+            display: flex; 
+            gap: 20px; 
+        }
+        .panel { 
+            flex: 1; 
+            border: 1px solid var(--border-color); 
+            border-radius: 5px; 
+            overflow: hidden;
+            background-color: var(--panel-bg);
+        }
+        .panel-header { 
+            background-color: var(--panel-header-bg); 
+            padding: 10px; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        pre { 
+            margin: 0; 
+            padding: 10px; 
+            white-space: pre-wrap; 
+            overflow: auto; 
+            max-height: 600px;
+            color: var(--text-color);
+        }
+        .line-numbers {
+            color: var(--line-numbers-text);
+            display: inline-block;
+            text-align: right;
+            padding-right: 10px;
+            user-select: none;
+            min-width: 30px;
+        }
     </style>
 </head>
 <body>
@@ -414,14 +724,14 @@
     <div class="comparison-container">
         <div class="panel">
             <div class="panel-header">Original</div>
-            <pre>${escapeHtml(leftText)}</pre>
+            <pre>${generateNumberedPreContent(leftText)}</pre>
         </div>
         <div class="panel">
             <div class="panel-header">Modified</div>
-            <pre>${escapeHtml(rightText)}</pre>
+            <pre>${generateNumberedPreContent(rightText)}</pre>
         </div>
     </div>
-    <div style="margin-top: 20px; color: #666;">
+    <div style="margin-top: 20px; color: var(--text-color);">
         Generated on ${new Date().toLocaleString()}
     </div>
 </body>
@@ -439,6 +749,20 @@
             URL.revokeObjectURL(url);
         }
 
+        // Generate numbered pre content for the downloaded HTML
+        function generateNumberedPreContent(text) {
+            let result = '';
+            const lines = text.split('\n');
+            
+            lines.forEach((line, index) => {
+                const lineNumber = index + 1;
+                const escapedLine = escapeHtml(line);
+                result += `<span class="line-numbers">${lineNumber}</span>${escapedLine}\n`;
+            });
+            
+            return result;
+        }
+
         // Synchronized scrolling
         function setupSyncScroll(element1, element2) {
             function syncScroll(source, target) {
@@ -451,11 +775,15 @@
             }
             
             element1.scrollListener = function() {
-                syncScroll(element1, element2);
+                if (syncScrollCheckbox.checked) {
+                    syncScroll(element1, element2);
+                }
             };
             
             element2.scrollListener = function() {
-                syncScroll(element2, element1);
+                if (syncScrollCheckbox.checked) {
+                    syncScroll(element2, element1);
+                }
             };
             
             element1.addEventListener('scroll', element1.scrollListener);
@@ -464,6 +792,24 @@
         
         // Setup synchronized scrolling for editors
         setupSyncScroll(leftEditor, rightEditor);
+        
+        // Setup line numbers synchronization
+        setupEditorLineNumbersSync(leftEditor, leftLineNumbers);
+        setupEditorLineNumbersSync(rightEditor, rightLineNumbers);
+
+        // Update diff on live input
+        function setupLiveCompare() {
+            const liveUpdate = function() {
+                if (liveCompareCheckbox.checked) {
+                    compareCode();
+                }
+            };
+            
+            leftEditor.addEventListener('input', liveUpdate);
+            rightEditor.addEventListener('input', liveUpdate);
+        }
+        
+        setupLiveCompare();
 
         // Event listeners
         compareBtn.addEventListener('click', compareCode);
@@ -472,24 +818,24 @@
         
         clearLeftBtn.addEventListener('click', function() {
             leftEditor.value = '';
-            resetViews();
             updateStats();
         });
         
         clearRightBtn.addEventListener('click', function() {
             rightEditor.value = '';
-            resetViews();
             updateStats();
         });
         
-        leftEditor.addEventListener('input', function() {
-            resetViews();
-            updateStats();
-        });
+        leftEditor.addEventListener('input', updateStats);
+        rightEditor.addEventListener('input', updateStats);
         
-        rightEditor.addEventListener('input', function() {
-            resetViews();
-            updateStats();
+        // Handle checkbox changes
+        showMarkersCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                updateStats(); // This will redraw markers
+            } else {
+                clearDiffMarkers();
+            }
         });
         
         // Example buttons
